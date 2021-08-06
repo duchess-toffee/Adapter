@@ -23,6 +23,7 @@ import { Results } from './results'
 export class FlatfileImporter extends EventEmitter {
   public static Promise = Promise
   private static MOUNT_URL: string = 'https://portal-2.flatfile.io/?key=:key'
+  private static UserBulkInitHook?: (rows: any, mode: any) => {} | undefined
 
   /**
    * Promise that resolves when the handshake is completed between Flatfile.io and the adapter
@@ -89,6 +90,11 @@ export class FlatfileImporter extends EventEmitter {
       default:
         throw new Error(`${version} is not a valid version`)
     }
+  }
+
+  public static setUserBulkInitHook(cb : (rows: any, mode: any) => {} | undefined)
+  {
+    FlatfileImporter.UserBulkInitHook = cb;
   }
 
   /**
@@ -345,11 +351,16 @@ export class FlatfileImporter extends EventEmitter {
         },
         bulkHookCallback: (rows, mode) => {
           try {
-            return this.$recordHook
+            if (FlatfileImporter.UserBulkInitHook) {
+              return FlatfileImporter.UserBulkInitHook(rows, mode);
+            }
+
+            const hooks = this.$recordHook
               ? Promise.all(
                   rows.map(([row, index]) => {
                     try {
-                      return this.$recordHook!(row, index, mode)
+                      const hook = this.$recordHook!(row, index, mode)
+                      return hook;
                     } catch (e) {
                       e.row = row
                       e.index = index
@@ -357,7 +368,8 @@ export class FlatfileImporter extends EventEmitter {
                     }
                   })
                 )
-              : undefined
+              : undefined;
+              return hooks;
           } catch ({ stack, row, index }) {
             console.error(`Flatfile Record Hook Error on row ${index}:\n  ${stack}`, { row, mode })
 
