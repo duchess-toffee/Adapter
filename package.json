@@ -1,5 +1,5 @@
 {
-  "name": "@flatfile/adapter",
+  "name": "@fulcrumpro/adapter",
   "version": "2.8.6",
   "description": "A lightweight TypeScript/JavaScript adapter for working with Flatfile's Portal",
   "main": "build/main/index.js",
